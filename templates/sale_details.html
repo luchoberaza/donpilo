@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Detalles de venta #{{ sale.id }}</h2>
+
+  <p class="muted">
+    {{ sale.created_at }} —
+    Total: <b>${{ cents_to_money(sale.total_cents) }}</b> —
+    Pago:
+    {% if (sale.payment_method or 'POS') == 'CASH' %}
+      <b>Efectivo</b>
+      {% if sale.cash_given_cents is not none %}
+        (dio ${{ cents_to_money(sale.cash_given_cents) }}, vuelto ${{ cents_to_money(sale.change_cents or 0) }})
+      {% endif %}
+    {% else %}
+      <b>POS</b>
+    {% endif %}
+  </p>
+
+  {% if sale.note %}<p class="muted">Nota: {{ sale.note }}</p>{% endif %}
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Precio base</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td><b>{{ it.product_name_snapshot }}</b></td>
+          <td>{{ format_qty(it.unit_type_snapshot, it.qty_value_snapshot) }}</td>
+          <td>
+            ${{ cents_to_money(it.unit_price_cents_snapshot) }}{% if it.unit_type_snapshot == 'kg' %}/kg{% else %}/u{% endif %}
+          </td>
+          <td><b>${{ cents_to_money(it.line_total_cents) }}</b></td>
+        </tr>
+        {% endfor %}
+        {% if not items %}
+        <tr><td colspan="4" class="muted">Sin ítems.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <a href="{{ url_for('sales_today') }}"><button type="button">Volver</button></a>
+</div>
+{% endblock %}

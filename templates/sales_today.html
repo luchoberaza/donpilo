@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div>
+      <h1 style="margin:0 0 6px 0; font-size:34px;">Ventas de hoy</h1>
+      <div class="muted">Día: <b>{{ day }}</b></div>
+    </div>
+    <div style="font-weight:900; font-size:28px;">Total: ${{ cents_to_money(total_today) }}</div>
+  </div>
+</div>
+
+<div class="card">
+  {% if sales and sales|length %}
+    {% for s in sales %}
+      <div style="border:1px solid #d6bfa9; background:#fffdf9; border-radius:14px; padding:12px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div style="font-weight:900;">
+            #{{ s.id }} · {{ s.created_at }}
+            <span class="muted" style="font-weight:800;">· {{ s.payment_method }}</span>
+          </div>
+          <div style="font-weight:900; font-size:18px;">${{ cents_to_money(s.total_cents) }}</div>
+        </div>
+
+        {% if s.payment_method == 'CASH' %}
+          <div class="muted" style="margin-top:6px; font-weight:900;">
+            Pagó: ${{ cents_to_money(s.cash_given_cents or 0) }} · Vuelto: ${{ cents_to_money(s.change_cents or 0) }}
+          </div>
+        {% endif %}
+
+        {% if s.note %}
+          <div class="muted" style="margin-top:6px;"><b>Nota:</b> {{ s.note }}</div>
+        {% endif %}
+
+        <div style="margin-top:10px;">
+          {% for it in details[s.id] %}
+            <div style="display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px solid #efe2d3;">
+              <div style="font-weight:900;">{{ it.product_name }}</div>
+              <div style="text-align:right; font-weight:900;">
+                {{ it.qty_label|qty_pretty }} · ${{ cents_to_money(it.line_cents) }}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <form method="post" action="{{ url_for('sales_delete', sale_id=s.id) }}"
+              data-confirm="¿Eliminar esta venta?"
+              data-confirm-title="Eliminar venta"
+              data-confirm-ok="Eliminar"
+              style="display:flex; justify-content:flex-end; margin-top:10px;">
+          <button type="submit" class="btn-danger">Eliminar</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="muted">Todavía no hay ventas hoy.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

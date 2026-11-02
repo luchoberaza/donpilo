@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Stock</h2>
+  <p class="muted">Por ahora es una pantalla simple para ver y poder vaciar el stock.</p>
+
+  <form method="post" action="{{ url_for('admin_stock_clear') }}"
+        onsubmit="return confirm('¿Seguro que querés vaciar el stock?') && confirm('Confirmación final: esto NO se puede deshacer. ¿Vaciar igual?');"
+        style="margin-bottom:12px;">
+    <button type="submit" class="btn-danger">Vaciar stock</button>
+  </form>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Categoría</th>
+          <th>Cantidad</th>
+          <th>Actualizado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td><b>{{ r.name }}</b></td>
+          <td class="muted">{{ r.category or "" }}</td>
+          <td>{{ format_qty(r.unit_type, r.qty_value) }}</td>
+          <td class="muted">{{ r.updated_at }}</td>
+        </tr>
+        {% endfor %}
+        {% if not rows %}
+        <tr><td colspan="4" class="muted">No hay stock cargado.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

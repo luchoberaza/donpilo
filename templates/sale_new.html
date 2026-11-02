@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <div>
+      <h1 style="margin:0 0 6px 0; font-size:34px;">Nueva venta</h1>
+      <div class="muted">Tocá un producto para agregarlo. Por kilo ingresás el importe ($). Por unidad ingresás cantidad.</div>
+    </div>
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('sale_create') }}" id="saleForm">
+  <div class="grid-2">
+    <!-- IZQUIERDA -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="font-weight:900;">Buscar producto <span class="muted" style="font-weight:700;">rápido</span></div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <input id="searchInput" type="text" placeholder="Ej: pan, bizcocho..." autocomplete="off">
+      </div>
+
+      <div id="productsWrap" style="margin-top:12px; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+        {% for p in products %}
+          <button type="button"
+                  class="product-btn"
+                  data-id="{{ p.id }}"
+                  data-name="{{ p.name }}"
+                  data-unit="{{ p.unit_type }}"
+                  data-price="{{ p.price_cents }}">
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
+              <div style="font-weight:900;">{{ p.name }}</div>
+              <div style="font-weight:900;">
+                {% if p.unit_type == 'kg' %}
+                  ${{ cents_to_money(p.price_cents) }}/kg
+                {% else %}
+                  ${{ cents_to_money(p.price_cents) }}/u
+                {% endif %}
+              </div>
+            </div>
+          </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- DERECHA -->
+    <div class="card" id="rightPanel">
+      <div style="font-weight:900; font-size:18px; margin-bottom:10px;">Resumen</div>
+
+      <div id="itemsList" style="border:1px solid #d6bfa9; background:#fffdf9; border-radius:14px; overflow:hidden;">
+        <div id="emptyState" style="padding:12px; color:#5a3e2b; font-weight:800;">
+          No agregaste productos todavía.
+        </div>
+        <div id="itemsRows"></div>
+      </div>
+
+      <div style="margin-top:12px; border:1px solid #d6bfa9; background:#fffdf9; border-radius:14px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:900;">Total</div>
+        <div id="totalLabel" style="font-weight:900; font-size:28px;">$0.00</div>
+      </div>
+
+      <div style="margin-top:12px; border:1px solid #d6bfa9; background:#fffdf9; border-radius:14px; padding:12px;">
+        <div style="font-weight:900; margin-bottom:10px;">Método de pago</div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <button type="button" id="btnCash" style="width:100%; padding:12px 14px; border-radius:12px; border:1px solid #156b32; background:#1f7a3b; color:#fff; font-weight:900;">
+            💵 Efectivo
+          </button>
+          <button type="button" id="btnPos" style="width:100%; padding:12px 14px; border-radius:12px; border:1px solid #6b5aa6; background:#8c76ba; color:#fff; font-weight:900;">
+            💳 POS
+          </button>
+        </div>
+
+        <input type="hidden" name="payment_method" id="paymentMethod" value="CASH">
+
+        <div id="cashBox" style="margin-top:10px;">
+          <div class="muted" style="margin:6px 0 6px 0; font-weight:900;">Te pagó</div>
+          <input type="text" name="cash_given" id="cashGiven" placeholder="Ej: 1000">
+          <div class="muted" style="margin-top:8px; font-weight:900;">Vuelto: <span id="changeLabel">$0.00</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px; border:1px solid #d6bfa9; background:#fffdf9; border-radius:14px; padding:12px;">
+        <div style="font-weight:900; margin-bottom:8px;">Nota (opcional)</div>
+        <textarea name="note" rows="2" placeholder="Ej: cliente habitual..."></textarea>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+        <button type="submit" id="saveBtn" style="padding:12px 14px; border-radius:12px;">Guardar venta</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="hiddenInputs"></div>
+</form>
+
+<!-- Modal -->
+<div class="modal-overlay" id="addOverlay" style="display:none;">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-head">
+      <div class="modal-icon" style="background:#7a4b2a;">+</div>
+      <div class="modal-title" id="addTitle">Agregar</div>
+    </div>
+    <div class="modal-body">
+      <div class="muted" id="addSubtitle" style="font-weight:900; margin-bottom:8px;"></div>
+
+      <div id="addKgBox" style="display:none;">
+        <div class="muted" style="font-weight:900; margin-bottom:6px;">Importe ($)</div>
+        <input type="text" id="addKgMoney" placeholder="Ej: 180">
+        <div class="muted" style="margin-top:8px; font-weight:900;">
+          Equivale aprox a: <span id="addKgPreview">-</span>
+        </div>
+      </div>
+
+      <div id="addUnitBox" style="display:none;">
+        <div class="muted" style="font-weight:900; margin-bottom:6px;">Cantidad</div>
+        <input type="number" id="addUnits" min="1" step="1" placeholder="Ej: 2">
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="muted" style="font-weight:900; margin-bottom:6px;">Precio</div>
+        <div class="pill" id="addPricePill">$0.00</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="addCancel">Cancelar</button>
+      <button type="button" id="addConfirm">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const productsWrap = $("productsWrap");
+  const searchInput  = $("searchInput");
+  const itemsRows    = $("itemsRows");
+  const emptyState   = $("emptyState");
+  const totalLabel   = $("totalLabel");
+  const hiddenInputs = $("hiddenInputs");
+
+  const btnCash       = $("btnCash");
+  const btnPos        = $("btnPos");
+  const paymentMethod = $("paymentMethod");
+  const cashBox       = $("cashBox");
+  const cashGiven     = $("cashGiven");
+  const changeLabel   = $("changeLabel");
+
+  const addOverlay    = $("addOverlay");
+  const addTitle      = $("addTitle");
+  const addSubtitle   = $("addSubtitle");
+  const addKgBox      = $("addKgBox");
+  const addUnitBox    = $("addUnitBox");
+  const addKgMoney    = $("addKgMoney");
+  const addKgPreview  = $("addKgPreview");
+  const addUnits      = $("addUnits");
+  const addPricePill  = $("addPricePill");
+  const addCancel     = $("addCancel");
+  const addConfirm    = $("addConfirm");
+
+  let items = [];
+  let pending = null; // {id,name,unitType,priceCents, editIndex?}
+
+  function money(cents){
+    const v = (cents || 0) / 100;
+    return v.toFixed(2);
+  }
+
+  function parseMoneyToCents(str){
+    if(str === null || str === undefined) return null;
+    const s = String(str).trim().replace(",", ".");
+    if(!s) return null;
+    const v = Number(s);
+    if(!Number.isFinite(v) || v < 0) return null;
+    return Math.round(v * 100);
+  }
+
+  function qtyLabelToGrams(qtyLabel){
+    if(!qtyLabel) return 0;
+    const lab = String(qtyLabel).trim().toLowerCase().replace(/\s+/g,"");
+    try{
+      if(lab.endsWith("g") && !lab.endsWith("kg")){
+        return Math.round(Number(lab.slice(0,-1).replace(",", ".")));
+      }
+      if(lab.endsWith("kg")){
+        let n = lab.slice(0,-2);
+        if(n.includes(",")){
+          n = n.replace(/\./g,"").replace(",", ".");
+        }
+        return Math.round(Number(n) * 1000);
+      }
+    }catch(_){}
+    return 0;
+  }
+
+  // ✅ CAMBIO: >= 1000g ahora se muestra como 1,5kg (decimal), y < 1000g como 750g
+  function gramsPretty(grams){
+    const g = Math.max(0, Math.round(Number(grams) || 0));
+    if(g <= 0) return "-";
+    if(g < 1000) return `${g}g`;
+    const kgVal = g / 1000;
+    let s = kgVal.toFixed(3).replace(/0+$/,"").replace(/\.$/,"");
+    s = s.replace(".", ",");
+    return `${s}kg`;
+  }
+
+  function formatQtyKgFromMoneyCents(moneyCents, priceCents){
+    if(!priceCents || priceCents <= 0) return "";
+    const kg = moneyCents / priceCents;
+    const grams = Math.round(kg * 1000);
+
+    if(grams <= 0) return "";
+    if(grams < 1000) return `${grams}g`;
+
+    const kgVal = grams / 1000;
+    const s = kgVal.toFixed(3).replace(/0+$/,"").replace(/\.$/,"").replace(".", ",");
+    return `${s}kg`;
+  }
+
+  // ✅ Preview robusto para "Equivale aprox" (escucha input/keyup/change/paste)
+  function updateKgPreview(){
+    if(!pending || pending.unitType !== "kg"){
+      addKgPreview.textContent = "-";
+      return;
+    }
+
+    const cents = parseMoneyToCents(addKgMoney.value);
+    const price = Number(pending.priceCents || 0);
+    if(cents === null || cents <= 0 || !Number.isFinite(price) || price <= 0){
+      addKgPreview.textContent = "-";
+      return;
+    }
+
+    const grams = Math.round((cents / price) * 1000);
+    addKgPreview.textContent = gramsPretty(grams);
+  }
+
+  function renderItems(){
+    itemsRows.innerHTML = "";
+
+    if(items.length === 0){
+      emptyState.style.display = "block";
+      return;
+    }
+    emptyState.style.display = "none";
+
+    items.forEach((it, idx) => {
+      const row = document.createElement("div");
+      row.style.display = "grid";
+      row.style.gridTemplateColumns = "1fr auto";
+      row.style.gap = "10px";
+      row.style.padding = "10px 12px";
+      row.style.borderTop = "1px solid #efe2d3";
+      row.style.alignItems = "center";
+
+      const name = document.createElement("div");
+      name.innerHTML = `<b>${it.name}</b>`;
+
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.justifyContent = "flex-end";
+      actions.style.gap = "8px";
+
+      const btnEdit = document.createElement("button");
+      btnEdit.type = "button";
+      btnEdit.className = "btn-secondary";
+      btnEdit.textContent = "Editar";
+      btnEdit.style.padding = "8px 10px";
+
+      const btnDel = document.createElement("button");
+      btnDel.type = "button";
+      btnDel.className = "btn-danger";
+      btnDel.textContent = "Borrar";
+      btnDel.style.padding = "8px 10px";
+
+      btnEdit.addEventListener("click", () => openEdit(idx));
+      btnDel.addEventListener("click", () => {
+        items.splice(idx, 1);
+        recalc();
+      });
+
+      actions.appendChild(btnEdit);
+      actions.appendChild(btnDel);
+
+      row.appendChild(name);
+      row.appendChild(actions);
+      itemsRows.appendChild(row);
+    });
+  }
+
+  function syncHidden(){
+    hiddenInputs.innerHTML = "";
+    items.forEach(it => {
+      const i1 = document.createElement("input");
+      i1.type = "hidden";
+      i1.name = "product_id[]";
+      i1.value = it.id;
+
+      const i2 = document.createElement("input");
+      i2.type = "hidden";
+      i2.name = "mode[]";
+      i2.value = it.mode;
+
+      const i3 = document.createElement("input");
+      i3.type = "hidden";
+      i3.name = "value[]";
+      i3.value = it.value;
+
+      hiddenInputs.appendChild(i1);
+      hiddenInputs.appendChild(i2);
+      hiddenInputs.appendChild(i3);
+    });
+  }
+
+  function calcTotalCents(){
+    let t = 0;
+    for(const it of items) t += (it.lineCents || 0);
+    return t;
+  }
+
+  function recalcCash(){
+    const total = calcTotalCents();
+    const given = parseMoneyToCents(cashGiven.value);
+    if(paymentMethod.value !== "CASH"){
+      changeLabel.textContent = "$0.00";
+      return;
+    }
+    if(given === null){
+      changeLabel.textContent = "$0.00";
+      return;
+    }
+    const change = given - total;
+    changeLabel.textContent = `$${money(change)}`;
+  }
+
+  function recalc(){
+    renderItems();
+    syncHidden();
+    const total = calcTotalCents();
+    totalLabel.textContent = `$${money(total)}`;
+    recalcCash();
+  }
+
+  function setPayment(method){
+    paymentMethod.value = method;
+    if(method === "CASH"){
+      cashBox.style.display = "block";
+    }else{
+      cashBox.style.display = "none";
+      cashGiven.value = "";
+      changeLabel.textContent = "$0.00";
+    }
+  }
+
+  btnCash.addEventListener("click", () => setPayment("CASH"));
+  btnPos.addEventListener("click", () => setPayment("POS"));
+  cashGiven.addEventListener("input", recalcCash);
+
+  function openAdd(product){
+    pending = product;
+
+    addTitle.textContent = "Agregar";
+    addSubtitle.textContent = product.name;
+
+    addPricePill.textContent = product.unitType === "kg"
+      ? `$${money(product.priceCents)}/kg`
+      : `$${money(product.priceCents)}/u`;
+
+    if(product.unitType === "kg"){
+      addKgBox.style.display = "block";
+      addUnitBox.style.display = "none";
+      addKgMoney.value = "";
+      addKgPreview.textContent = "-";
+      addKgMoney.focus();
+      updateKgPreview();
+    }else{
+      addKgBox.style.display = "none";
+      addUnitBox.style.display = "block";
+      addUnits.value = "1";
+      addUnits.focus();
+    }
+
+    addOverlay.style.display = "flex";
+    addOverlay.classList.add("show");
+  }
+
+  function openEdit(index){
+    const it = items[index];
+    pending = {
+      id: it.id,
+      name: it.name,
+      unitType: it.mode,
+      priceCents: it.priceCents,
+      editIndex: index
+    };
+
+    addTitle.textContent = "Editar";
+    addSubtitle.textContent = it.name;
+
+    addPricePill.textContent = it.mode === "kg"
+      ? `$${money(it.priceCents)}/kg`
+      : `$${money(it.priceCents)}/u`;
+
+    if(it.mode === "kg"){
+      addKgBox.style.display = "block";
+      addUnitBox.style.display = "none";
+      addKgMoney.value = money(it.lineCents);
+
+      const g = qtyLabelToGrams(it.qtyLabel || "");
+      addKgPreview.textContent = (g > 0) ? gramsPretty(g) : "-";
+
+      addKgMoney.focus();
+    }else{
+      addKgBox.style.display = "none";
+      addUnitBox.style.display = "block";
+      addUnits.value = String(it.units || 1);
+      addUnits.focus();
+    }
+
+    addOverlay.style.display = "flex";
+    addOverlay.classList.add("show");
+  }
+
+  function closeAddPanel(){
+    addOverlay.style.display = "none";
+    addOverlay.classList.remove("show");
+    pending = null;
+  }
+
+  addCancel.addEventListener("click", closeAddPanel);
+  addOverlay.addEventListener("click", (e)=>{
+    if(e.target === addOverlay) closeAddPanel();
+  });
+
+  addKgMoney.addEventListener("input", updateKgPreview);
+  addKgMoney.addEventListener("keyup", updateKgPreview);
+  addKgMoney.addEventListener("change", updateKgPreview);
+  addKgMoney.addEventListener("paste", () => setTimeout(updateKgPreview, 0));
+
+  addConfirm.addEventListener("click", ()=>{
+    if(!pending) return;
+
+    if(pending.unitType === "kg"){
+      const cents = parseMoneyToCents(addKgMoney.value);
+      if(cents === null || cents <= 0){
+        closeAddPanel();
+        return;
+      }
+
+      const qtyLabel = formatQtyKgFromMoneyCents(cents, pending.priceCents);
+
+      const itemObj = {
+        id: pending.id,
+        name: pending.name,
+        mode: "kg",
+        value: money(cents),
+        qtyLabel: qtyLabel,
+        lineCents: cents,
+        priceCents: pending.priceCents
+      };
+
+      if(typeof pending.editIndex === "number"){
+        items[pending.editIndex] = itemObj;
+      }else{
+        items.push(itemObj);
+      }
+      closeAddPanel();
+      recalc();
+      return;
+    }
+
+    const u = Number(addUnits.value);
+    if(!Number.isFinite(u) || u <= 0){
+      closeAddPanel();
+      return;
+    }
+    const units = Math.floor(u);
+    const line = (pending.priceCents || 0) * units;
+
+    const itemObj = {
+      id: pending.id,
+      name: pending.name,
+      mode: "unit",
+      value: String(units),
+      units: units,
+      qtyLabel: String(units),
+      lineCents: line,
+      priceCents: pending.priceCents
+    };
+
+    if(typeof pending.editIndex === "number"){
+      items[pending.editIndex] = itemObj;
+    }else{
+      items.push(itemObj);
+    }
+    closeAddPanel();
+    recalc();
+  });
+
+  productsWrap.querySelectorAll("button.product-btn").forEach(btn => {
+    btn.addEventListener("click", ()=>{
+      const id = btn.dataset.id;
+      const name = btn.dataset.name;
+      const unitType = btn.dataset.unit;
+      const priceCents = parseInt(btn.dataset.price || "0", 10) || 0;
+      openAdd({ id, name, unitType, priceCents });
+    });
+  });
+
+  searchInput.addEventListener("input", ()=>{
+    const q = searchInput.value.trim().toLowerCase();
+    productsWrap.querySelectorAll("button.product-btn").forEach(btn => {
+      const name = (btn.dataset.name || "").toLowerCase();
+      btn.style.display = name.includes(q) ? "" : "none";
+    });
+  });
+
+  setPayment("CASH");
+  recalc();
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Editar producto</h2>
+
+  <form method="post" action="{{ url_for('admin_product_update', product_id=p.id) }}" style="display:grid; gap:10px;">
+    <label>Nombre</label>
+    <input name="name" value="{{ p.name }}" required />
+
+    <label>Categoría</label>
+    <input name="category" value="{{ p.category or '' }}" />
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+      <div>
+        <label>Tipo</label>
+        <select name="unit_type">
+          <option value="unit" {% if p.unit_type=='unit' %}selected{% endif %}>Por unidad</option>
+          <option value="kg" {% if p.unit_type=='kg' %}selected{% endif %}>Por kilo</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Precio</label>
+        <input name="price" value="{{ cents_to_money(p.price_cents) }}" required />
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button type="submit">Guardar</button>
+      <a href="{{ url_for('admin_products') }}"><button type="button" class="btn-warn">Volver</button></a>
+    </div>
+  </form>
+</div>
+{% endblock %}

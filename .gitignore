@@ -1,0 +1,12 @@
+# Secretos
+secretos_local.py
+.env
+
+# Bases de datos con ventas reales
+*.db
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+.venv/

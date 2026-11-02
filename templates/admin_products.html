@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <h1 style="margin:0 0 8px 0; font-size:34px;">Admin catálogo</h1>
+  <p class="muted" style="margin:0;">Sin categorías (más rápido).</p>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2 style="margin-top:0;">Agregar producto</h2>
+
+    <form method="post" action="{{ url_for('admin_products_create') }}" style="display:grid; gap:10px;">
+      <div>
+        <label style="font-weight:800;">Nombre</label>
+        <input name="name" placeholder="Ej: Bizcochos" required>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-weight:800;">Tipo</label>
+          <select name="unit_type" required>
+            <option value="kg">Por kilo</option>
+            <option value="unit">Por unidad</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-weight:800;">Precio</label>
+          <input name="price" inputmode="decimal" placeholder="Ej: 350 (o 350,00)" required>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end;">
+        <button type="submit">Agregar</button>
+      </div>
+    </form>
+
+    <div class="muted" style="margin-top:10px;">
+      * Bloquea nombres repetidos (ignorando mayúsc/minúsc).
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;">Productos</h2>
+
+    {% if not products %}
+      <div class="muted">No hay productos cargados.</div>
+    {% else %}
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e2cfbe;">Producto</th>
+            <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e2cfbe;">Tipo</th>
+            <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #e2cfbe;">Precio</th>
+            <th style="width:120px; border-bottom:1px solid #e2cfbe;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+            <tr>
+              <td style="padding:10px 8px; border-bottom:1px solid #e2cfbe; font-weight:800;">{{ p.name }}</td>
+              <td style="padding:10px 8px; border-bottom:1px solid #e2cfbe;" class="muted">
+                {% if p.unit_type == 'kg' %}Por kilo{% else %}Por unidad{% endif %}
+              </td>
+              <td style="padding:10px 8px; border-bottom:1px solid #e2cfbe; font-weight:900;">
+                ${{ cents_to_money(p.price_cents) }}{% if p.unit_type == 'kg' %}/kg{% else %}/u{% endif %}
+              </td>
+              <td style="padding:10px 8px; border-bottom:1px solid #e2cfbe; text-align:right;">
+                <form method="post" action="{{ url_for('admin_product_delete', product_id=p.id) }}"
+                      data-confirm="¿Eliminar el producto '{{ p.name }}'? No se puede deshacer."
+                      data-confirm-title="Eliminar producto"
+                      data-confirm-ok="Sí, eliminar">
+                  <button type="submit" class="btn-danger">Eliminar</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

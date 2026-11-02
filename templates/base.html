@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ title or "Don Pilo" }}</title>
+
+  <!-- Fuente Poppins (app) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Fuente “distinguida” para la marca -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family:"Poppins",system-ui,Arial; margin:0; background:#f6efe6; color:#2f2218; }
+    a { color:inherit; text-decoration:none; }
+    .wrap{ max-width:1200px; margin:0 auto; padding:18px; }
+
+    .nav{
+      position:sticky; top:0; z-index:50;
+      background:rgba(246,239,230,0.92);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid #d6bfa9;
+    }
+    .nav-inner{
+      max-width:1200px; margin:0 auto; padding:12px 18px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    }
+    .nav-left{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .nav-item{
+      padding:9px 12px; border-radius:10px;
+      border:1px solid #d6bfa9;
+      background:rgba(255,255,255,0.45);
+      font-weight:700; letter-spacing:0.2px;
+      transition:all 140ms ease;
+      text-transform:uppercase; font-size:12.5px;
+    }
+    .nav-item:hover{ box-shadow:0 8px 18px rgba(47,34,24,0.12); transform:translateY(-1px); }
+    .nav-item.active{ background:#7a4b2a; border-color:#6a4023; color:#fff7ee; }
+
+    .nav-brand{ display:flex; align-items:center; gap:12px; padding:8px 10px; margin-left:auto; }
+    .brand-logo{
+      width:42px; height:42px; border-radius:12px;
+      border:1px solid #d6bfa9;
+      background:#fffdf9; object-fit:cover;
+      box-shadow:0 6px 14px rgba(47,34,24,0.10);
+    }
+    .brand-text{ display:flex; flex-direction:column; line-height:1; }
+    .brand-name{
+      font-family:"Playfair Display", serif;
+      font-weight:800; letter-spacing:0.2px;
+      font-size:22px; color:#2f2218;
+      text-shadow:0 1px 0 rgba(255,255,255,0.5);
+    }
+    .brand-sub{
+      font-weight:700;
+      font-size:11px;
+      letter-spacing:1.6px;
+      text-transform:uppercase;
+      color:#5a3e2b;
+      opacity:0.9;
+      margin-top:2px;
+    }
+
+    @media (max-width: 600px){
+      .nav-inner{ align-items:flex-start; }
+      .nav-brand{
+        width:100%;
+        justify-content:flex-end;
+        padding-bottom:12px;
+      }
+      .brand-name{ font-size:20px; }
+    }
+
+    .card{
+      background:#f7efe6;
+      border:1px solid #d6bfa9;
+      border-radius:16px;
+      padding:16px;
+      margin-bottom:14px;
+      box-shadow:0 6px 18px rgba(47,34,24,0.06);
+    }
+
+    input, select, textarea, button{
+      font:inherit;
+      border-radius:12px;
+      border:1px solid #d6bfa9;
+      background:#fffdf9;
+      color:#2f2218;
+      padding:10px 12px;
+      width:100%;
+      box-sizing:border-box;
+    }
+    button{
+      background:#7a4b2a;
+      color:#fff7ee;
+      cursor:pointer;
+      border:1px solid #6a4023;
+      width:auto;
+      font-weight:800;
+      transition:all 140ms ease;
+    }
+    button:hover{ filter:brightness(1.06); box-shadow:0 8px 18px rgba(47,34,24,0.22); transform:translateY(-1px); }
+    button:active{ transform:translateY(0) scale(0.99); box-shadow:0 4px 10px rgba(47,34,24,0.16); }
+
+    .btn-danger{ background:#b42318!important; border:1px solid #8f1c13!important; color:#fff!important; }
+    .btn-secondary{
+      background: transparent !important;
+      border:1px solid #d6bfa9 !important;
+      color:#2f2218 !important;
+      box-shadow:none !important;
+    }
+    .btn-secondary:hover{
+      background:#fffdf9 !important;
+      box-shadow:0 8px 18px rgba(47,34,24,0.12) !important;
+    }
+
+    .muted{ color:#5a3e2b; font-weight:600; }
+
+    .flash{
+      margin:12px 0; padding:10px 12px;
+      border-radius:12px; border:1px solid #d6bfa9;
+      background:#fffdf9; font-weight:800;
+    }
+
+    /* ====== CLAVE: Layout 2 panel en PC, apila solo en celular ====== */
+    .grid-2{
+      display:grid;
+      grid-template-columns: minmax(0, 1fr) 420px;
+      gap:12px;
+      align-items:start;
+    }
+
+    /* En pantallas “medio” mantenemos 2 columnas pero achicamos el panel derecho */
+    @media (max-width:1020px){
+      .grid-2{ grid-template-columns: minmax(0, 1fr) 360px; }
+    }
+
+    /* Recién en celular apilamos */
+    @media (max-width:760px){
+      .grid-2{ grid-template-columns:1fr; }
+    }
+    /* =============================================================== */
+
+    .product-btn{
+      background:#7a4b2a;
+      border:1px solid #6a4023;
+      color:#fff7ee;
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:900;
+      cursor:pointer;
+      transition:all 140ms ease;
+      width:100%;
+      text-align:left;
+    }
+    .product-btn:hover{ filter:brightness(1.06); box-shadow:0 8px 18px rgba(47,34,24,0.22); transform:translateY(-1px); }
+    .product-btn:active{ transform:translateY(0) scale(0.99); box-shadow:0 4px 10px rgba(47,34,24,0.16); }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid #d6bfa9;
+      background:#fffdf9;
+      font-weight:600;
+    }
+
+    /* Modal confirm */
+    .modal-overlay{
+      position:fixed; inset:0;
+      background: rgba(20, 12, 6, 0.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:9999;
+    }
+    .modal-overlay.show{ display:flex; }
+    .modal{
+      width:min(520px, 100%);
+      background:#fff7ee;
+      border:1px solid #d6bfa9;
+      border-radius:18px;
+      box-shadow:0 24px 60px rgba(0,0,0,0.35);
+      overflow:hidden;
+      transform: translateY(6px);
+      animation: popin 140ms ease-out forwards;
+    }
+    @keyframes popin { to { transform: translateY(0); } }
+    .modal-head{
+      padding:14px 16px;
+      background: #efe2d3;
+      border-bottom:1px solid #d6bfa9;
+      display:flex; align-items:center; gap:10px;
+    }
+    .modal-icon{
+      width:34px; height:34px; border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:900; background:#b42318; color:#fff;
+      flex:0 0 auto;
+    }
+    .modal-title{ font-weight:900; letter-spacing:0.3px; }
+    .modal-body{ padding:14px 16px 0 16px; color:#2f2218; }
+    .modal-msg{ margin:0 0 14px 0; line-height:1.35; font-weight:700; }
+    .modal-actions{
+      padding:14px 16px 16px 16px;
+      display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;
+    }
+
+    .pw-error{
+      margin-top:8px;
+      color:#b42318;
+      font-weight:900;
+      display:none;
+    }
+    /* ====== Más contraste en rectángulos / grids (sin cambiar layout) ====== */
+
+/* Fondo general un pelín más claro para que las cards destaquen */
+body{
+  background:#f3eadf; /* antes #f6efe6 */
+}
+
+/* Cards: más blanco + borde más marcado + sombra un poquito más fuerte */
+.card{
+  background: rgba(255, 253, 249, 0.88); /* antes era muy parecido al fondo */
+  border: 1px solid rgba(214, 191, 169, 0.95);
+  box-shadow: 0 10px 26px rgba(47, 34, 24, 0.10);
+}
+
+/* Paneles dentro del grid (si tenés cards adentro, esto igual suma) */
+.grid-2 > *{
+  background: rgba(255, 253, 249, 0.78);
+  border: 1px solid rgba(214, 191, 169, 0.75);
+  border-radius: 16px;
+}
+
+/* Tablas/listas dentro de cards: separadores un poco más visibles */
+table th{
+  border-bottom: 1px solid rgba(214, 191, 169, 0.95) !important;
+}
+table td{
+  border-bottom: 1px solid rgba(239, 226, 211, 0.95) !important;
+}
+
+/* Inputs con un toque más de sombra para que se vean “levantados” */
+input, select, textarea{
+  box-shadow: 0 6px 14px rgba(47, 34, 24, 0.08);
+}
+
+/* ================================================================ */
+
+  </style>
+</head>
+
+<body>
+  {% set p = request.path %}
+
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="nav-left">
+        <a class="nav-item {% if p == '/' %}active{% endif %}" href="{{ url_for('index') }}">Inicio</a>
+        <a class="nav-item {% if p.startswith('/sale/') %}active{% endif %}" href="{{ url_for('sale_new') }}">Nueva venta</a>
+        <a class="nav-item {% if p.startswith('/sales/') %}active{% endif %}" href="{{ url_for('sales_today') }}">Ventas de hoy</a>
+        <a class="nav-item {% if p.startswith('/admin') %}active{% endif %}" href="{{ url_for('admin_products') }}">Admin catálogo</a>
+      </div>
+
+      <!-- Marca arriba a la derecha -->
+      <div class="nav-brand" aria-label="Marca">
+        <img class="brand-logo" src="{{ url_for('static', filename='logo.png') }}" alt="Logo DonPilo"
+             onerror="this.style.display='none';" />
+        <div class="brand-text">
+          <div class="brand-name">DonPilo</div>
+          <div class="brand-sub">PANADERIA</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Modal confirm reutilizable -->
+  <div class="modal-overlay" id="confirmOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="modal-head">
+        <div class="modal-icon">!</div>
+        <div class="modal-title" id="confirmTitle">Confirmar</div>
+      </div>
+      <div class="modal-body">
+        <p class="modal-msg" id="confirmMsg">¿Estás seguro?</p>
+
+        <!-- Password (opcional) -->
+        <div id="confirmPwWrap" style="display:none; margin-top:10px;">
+          <label class="muted" style="display:block; margin-bottom:6px; font-weight:900;">Contraseña</label>
+          <input type="password" id="confirmPw" placeholder="Ingresá la contraseña" autocomplete="current-password" />
+          <div class="pw-error" id="confirmPwError">Contraseña incorrecta.</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="confirmCancel">Cancelar</button>
+        <button type="button" class="btn-danger" id="confirmOk">Sí, confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const overlay = document.getElementById("confirmOverlay");
+      const titleEl = document.getElementById("confirmTitle");
+      const msgEl = document.getElementById("confirmMsg");
+      const btnOk = document.getElementById("confirmOk");
+      const btnCancel = document.getElementById("confirmCancel");
+
+      const pwWrap = document.getElementById("confirmPwWrap");
+      const pwInput = document.getElementById("confirmPw");
+      const pwError = document.getElementById("confirmPwError");
+
+      const REQUIRED_PASS = {{ admin_password_modal|tojson }};
+
+      let pendingForm = null;
+      let pwRequired = false;
+
+      function openConfirm({title, message, okText, requirePassword}) {
+        titleEl.textContent = title || "Confirmar";
+        msgEl.textContent = message || "¿Estás seguro?";
+        btnOk.textContent = okText || "Sí, confirmar";
+
+        pwRequired = !!requirePassword;
+
+        if(pwWrap){
+          pwWrap.style.display = pwRequired ? "block" : "none";
+        }
+        if(pwInput){
+          pwInput.value = "";
+        }
+        if(pwError){
+          pwError.style.display = "none";
+        }
+
+        overlay.classList.add("show");
+        overlay.setAttribute("aria-hidden", "false");
+
+        if(pwRequired && pwInput) pwInput.focus();
+        else btnCancel.focus();
+      }
+
+      function closeConfirm(){
+        overlay.classList.remove("show");
+        overlay.setAttribute("aria-hidden", "true");
+        pendingForm = null;
+        pwRequired = false;
+
+        if(pwWrap) pwWrap.style.display = "none";
+        if(pwInput) pwInput.value = "";
+        if(pwError) pwError.style.display = "none";
+      }
+
+      overlay.addEventListener("click", (e)=>{
+        if(e.target === overlay) closeConfirm();
+      });
+
+      document.addEventListener("keydown", (e)=>{
+        if(e.key === "Escape" && overlay.classList.contains("show")) closeConfirm();
+      });
+
+      btnCancel.addEventListener("click", closeConfirm);
+
+      btnOk.addEventListener("click", ()=>{
+        if(!pendingForm) return;
+
+        if(pwRequired){
+          const entered = (pwInput && pwInput.value ? pwInput.value : "").trim();
+          if(entered !== REQUIRED_PASS){
+            if(pwError) pwError.style.display = "block";
+            if(pwInput) pwInput.focus();
+            return;
+          }
+
+          // Enviar contraseña al backend
+          let h = pendingForm.querySelector("input[name='admin_password']");
+          if(!h){
+            h = document.createElement("input");
+            h.type = "hidden";
+            h.name = "admin_password";
+            pendingForm.appendChild(h);
+          }
+          h.value = entered;
+        }
+
+        const f = pendingForm;
+        closeConfirm();
+        f.submit();
+      });
+
+      document.addEventListener("submit", (e)=>{
+        const form = e.target;
+        if(!(form instanceof HTMLFormElement)) return;
+
+        const msg = form.getAttribute("data-confirm");
+        if(!msg) return;
+
+        e.preventDefault();
+        pendingForm = form;
+
+        const t = form.getAttribute("data-confirm-title") || "Confirmar";
+        const ok = form.getAttribute("data-confirm-ok") || "Sí, confirmar";
+        const needPw = form.getAttribute("data-confirm-password") === "1";
+
+        openConfirm({title: t, message: msg, okText: ok, requirePassword: needPw});
+      }, true);
+    })();
+  </script>
+</body>
+</html>

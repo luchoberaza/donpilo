@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div>
+      <h1 style="margin:0 0 6px 0; font-size:34px;">Inicio</h1>
+      <div class="muted">Resumen de hoy: <b>{{ day }}</b></div>
+    </div>
+
+    <form id="closeDayForm"
+          method="post"
+          action="{{ url_for('close_day') }}"
+          data-confirm="¿Cerrar el día? Esto descargará el PDF y vaciará todas las ventas de hoy."
+          data-confirm-title="Cerrar día"
+          data-confirm-ok="Cerrar día"
+          data-confirm-password="1"
+          style="margin:0;">
+      <button type="submit" class="btn-danger" style="padding:12px 14px;">
+        Cerrar día
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="card" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+  <div class="muted" style="font-weight:900;">Total vendido hoy</div>
+  <div style="font-weight:900; font-size:34px;">${{ cents_to_money(total_today) }}</div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Por producto</h2>
+
+  {% if summary and summary|length %}
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:10px; border-bottom:1px solid #d6bfa9;">Producto</th>
+          <th style="text-align:right; padding:10px; border-bottom:1px solid #d6bfa9;">Unid.</th>
+          <th style="text-align:right; padding:10px; border-bottom:1px solid #d6bfa9;">Kg</th>
+          <th style="text-align:right; padding:10px; border-bottom:1px solid #d6bfa9;">$</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in summary %}
+          <tr>
+            <td style="padding:10px; border-bottom:1px solid #efe2d3;"><b>{{ r.product_name }}</b></td>
+            <td style="padding:10px; border-bottom:1px solid #efe2d3; text-align:right;">
+              {% if r.units_sold and r.units_sold > 0 %}{{ r.units_sold }}{% else %}-{% endif %}
+            </td>
+            <td style="padding:10px; border-bottom:1px solid #efe2d3; text-align:right;">
+              {% if r.grams_sold and r.grams_sold > 0 %}
+                {{ r.grams_sold|grams_pretty }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td style="padding:10px; border-bottom:1px solid #efe2d3; text-align:right;">
+              ${{ cents_to_money(r.money_cents) }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="muted">Todavía no hay ventas hoy.</div>
+  {% endif %}
+</div>
+
+<script>
+(function () {
+  const form = document.getElementById("closeDayForm");
+  if (!form) return;
+
+  // IMPORTANTE: no tocamos el submit normal, para no romper el modal de confirmación.
+  // Solo interceptamos el submit programático que el modal dispara al confirmar.
+
+  let inFlight = false;
+
+  function getFileNameFromDisposition(disposition) {
+    if (!disposition) return null;
+    let m = disposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+    if (m && m[1]) return decodeURIComponent(m[1].trim().replace(/(^"|"$)/g, ""));
+    m = disposition.match(/filename\s*=\s*("?)([^";]+)\1/i);
+    if (m && m[2]) return m[2].trim();
+    return null;
+  }
+
+  async function doCloseDayFetch() {
+    if (inFlight) return;
+    inFlight = true;
+
+    try {
+      const fd = new FormData(form);
+
+      const resp = await fetch(form.action, {
+        method: "POST",
+        body: fd,
+        credentials: "same-origin",
+        redirect: "follow"
+      });
+
+      const cd = resp.headers.get("Content-Disposition") || "";
+      const ct = (resp.headers.get("Content-Type") || "").toLowerCase();
+      const isPdf = ct.includes("application/pdf") || cd.toLowerCase().includes("attachment");
+
+      if (!resp.ok) {
+        // si hubo error, volvemos para ver el flash
+        window.location.href = "{{ url_for('index') }}";
+        return;
+      }
+
+      if (!isPdf) {
+        // si terminó en HTML (redirect/flash), navegamos ahí
+        window.location.href = resp.url || "{{ url_for('index') }}";
+        return;
+      }
+
+      // ✅ Descarga PDF
+      const blob = await resp.blob();
+      const filename = getFileNameFromDisposition(cd) || "cierre_dia.pdf";
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      // ✅ Y recién ahí recargamos Inicio para ver que quedó vacío
+      window.location.href = "{{ url_for('index') }}";
+
+    } catch (e) {
+      window.location.href = "{{ url_for('index') }}";
+    } finally {
+      inFlight = false;
+    }
+  }
+
+  // Interceptamos SOLO el submit programático (cuando confirmás en el modal)
+  const nativeSubmit = HTMLFormElement.prototype.submit;
+  form.submit = function () {
+    // No navegamos por POST normal: hacemos fetch y luego recargamos
+    doCloseDayFetch();
+  };
+
+})();
+</script>
+
+{% endblock %}
